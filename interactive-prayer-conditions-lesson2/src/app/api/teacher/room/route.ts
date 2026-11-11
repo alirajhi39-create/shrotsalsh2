@@ -8,6 +8,7 @@ import {
   getRoomByCode,
   listPlayers,
   nextQuestion,
+  remainingSeconds,
   removePlayer,
   resetRoom,
   revealAnswer,
@@ -30,13 +31,6 @@ const schema = z.object({
   /** عدد أسئلة المسابقة */
   questionCount: z.number().int().min(1).max(50).nullish(),
 });
-
-/** الثواني المتبقية للسؤال الحالي (0 إذا كان بلا مؤقّت أو انتهى الوقت) */
-function remainingSeconds(room: { seconds: number; reveal: boolean; finished: boolean; questionStartedAt: Date | null }) {
-  if (!room.seconds || room.reveal || room.finished || !room.questionStartedAt) return 0;
-  const elapsed = Math.floor((Date.now() - new Date(room.questionStartedAt).getTime()) / 1000);
-  return Math.max(0, room.seconds - elapsed);
-}
 
 function zonesOf(card: LiveQuestion | null, mode: string) {
   if (!card) return [];
@@ -156,5 +150,7 @@ export async function GET(req: NextRequest) {
     started: room.started,
     seconds: room.seconds,
     remaining: remainingSeconds(room),
+    /** true عند وصول المؤقّت إلى صفر (لكن السؤال لا يُنهى إلا بإجابة الجميع أو بإجراء المعلم) */
+    timeUp: room.started && room.seconds > 0 && remainingSeconds(room) === 0 && !room.reveal && !room.finished,
   });
 }

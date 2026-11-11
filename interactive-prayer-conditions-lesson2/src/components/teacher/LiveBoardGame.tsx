@@ -20,6 +20,7 @@ type RoomState = {
   started: boolean;
   seconds: number;
   remaining: number;
+  timeUp?: boolean;
   deckInfo?: { kind: string }[];
   card: { id: string; label: string; zone: string | null } | null;
   zones: { id: string; label: string; emoji: string }[];
@@ -253,10 +254,14 @@ export default function LiveBoardGame() {
             <span
               className={cx(
                 "rounded-2xl px-4 py-1 text-2xl font-black tabular-nums",
-                !room.reveal && remaining <= 5 ? "animate-pulse bg-rose-100 text-rose-700" : "bg-turq-50 text-turq-800",
+                room.timeUp
+                  ? "bg-rose-600 text-white"
+                  : !room.reveal && remaining <= 5
+                    ? "animate-pulse bg-rose-100 text-rose-700"
+                    : "bg-turq-50 text-turq-800",
               )}
             >
-              ⏱️ {remaining} ث
+              {room.timeUp ? "انتهى الوقت" : `⏱️ ${remaining} ث`}
             </span>
           )}
         </div>
@@ -271,6 +276,21 @@ export default function LiveBoardGame() {
           <span>{Math.round(((room.index + (room.reveal ? 1 : 0)) / room.total) * 100)}% مكتمل</span>
         </div>
       </div>
+
+      {room.timeUp && !room.reveal && (
+        <div className="animate-pop flex flex-wrap items-center gap-3 rounded-3xl border-4 border-rose-300 bg-rose-50 p-4 shadow">
+          <span className="text-4xl">⏰</span>
+          <div className="flex-1">
+            <p className="text-lg font-black text-rose-800">انتهى الوقت</p>
+            <p className="text-sm font-bold text-rose-700">
+              أجاب {answered} من {room.players.length} — السؤال سيُنهى تلقائيًا عند إجابة جميع الطلاب، أو اكشف الإجابة الآن.
+            </p>
+          </div>
+          <Btn size="sm" variant="success" onClick={() => act("reveal")} disabled={busy}>
+            ✅ كشف الإجابة
+          </Btn>
+        </div>
+      )}
 
       {/* أدوات التحكم */}
       <div className="flex flex-wrap items-center gap-2 rounded-3xl bg-white p-4 shadow">

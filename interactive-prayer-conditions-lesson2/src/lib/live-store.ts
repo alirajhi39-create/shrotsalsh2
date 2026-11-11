@@ -49,28 +49,24 @@ export async function createRoom(params: {
 const normSeconds = (v: number) => Math.max(0, Math.min(300, Math.round(v || 0)));
 
 /**
- * إذا انتهى وقت السؤال (وضعه المعلم) يُكشف الجواب تلقائيًا ويُحدَّث السجل.
- * تُنفَّذ عند كل قراءة للحالة، فيعمل حتى لو كان المتصفح غير نشط.
+ * الثواني المتبقية للسؤال. عند وصولها إلى صفر يظهر للمعلم تنبيه «انتهى الوقت»
+ * مع زر كشف الإجابة، لكن السؤال لا يُنهى تلقائيًا إلا عند إجابة جميع الطلاب.
  */
-async function expireIfDue(room: typeof liveRooms.$inferSelect) {
-  if (room.closed || room.reveal || room.finished || !room.started || !room.seconds || !room.questionStartedAt) return room;
+export function remainingSeconds(room: {
+  seconds: number;
+  reveal: boolean;
+  finished: boolean;
+  questionStartedAt: Date | null;
+}) {
+  if (!room.seconds || room.reveal || room.finished || !room.questionStartedAt) return 0;
   const elapsed = Math.floor((Date.now() - new Date(room.questionStartedAt).getTime()) / 1000);
-  if (elapsed < room.seconds) return room;
-  const card = (room.deck as { correct: string }[])[room.currentIndex];
-  if (card) {
-    await db
-      .update(livePlayers)
-      .set({ score: sql`${livePlayers.score} + 10` })
-      .where(and(eq(livePlayers.roomId, room.id), eq(livePlayers.answered, true), eq(livePlayers.choice, card.correct)));
-  }
-  await db.update(liveRooms).set({ reveal: true, updatedAt: new Date() }).where(eq(liveRooms.id, room.id));
-  return { ...room, reveal: true };
+  return Math.max(0, room.seconds - elapsed);
 }
 
 export async function getRoomByCode(code: string) {
   await ensureSchema();
   const [row] = await db.select().from(liveRooms).where(eq(liveRooms.code, code)).limit(1);
-  return row ? expireIfDue(row) : null;
+  return row ?? null;
 }
 
 export async function listPlayers(roomId: number): Promise<StoredPlayer[]> {
@@ -108,7 +104,7 @@ export async function answerQuestion(code: string, playerId: string, choice: str
   const room = await getRoomByCode(code);
   if (!room || room.closed) return { error: "الغرفة غير موجودة أو انتهت المسابقة" as const };
   if (!room.started) return { error: "لم يبدأ المعلم المسابقة بعد" as const };
-  if (room.reveal) return { error: "انتهى وقت الإجابة على هذا السؤال" as const };
+  if (room.reveal) return { error: "تم كشف الإجابة، انتظر السؤال التالي" as const };
   const [p] = await db
     .select()
     .from(livePlayers)

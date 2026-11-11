@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { answerQuestion, getRoomByCode, joinRoom, listPlayers, removePlayer } from "@/lib/live-store";
+import { answerQuestion, getRoomByCode, joinRoom, listPlayers, remainingSeconds, removePlayer } from "@/lib/live-store";
 import { ZONE_LABELS, zoneEmoji, type LiveQuestion } from "@/lib/rooms";
 
 export const dynamic = "force-dynamic";
@@ -84,11 +84,8 @@ export async function GET(req: NextRequest) {
       finished: room.finished,
       started: room.started,
       seconds: room.seconds,
-      remaining: (() => {
-        if (!room.seconds || room.reveal || room.finished || !room.questionStartedAt) return 0;
-        const elapsed = Math.floor((Date.now() - new Date(room.questionStartedAt).getTime()) / 1000);
-        return Math.max(0, room.seconds - elapsed);
-      })(),
+      remaining: remainingSeconds(room),
+      timeUp: room.started && room.seconds > 0 && remainingSeconds(room) === 0 && !room.reveal && !room.finished,
       reveal: room.reveal,
       question: card && room.started ? { label: card.label, kind: card.kind } : null,
       zones: zonesOf(card, room.mode),

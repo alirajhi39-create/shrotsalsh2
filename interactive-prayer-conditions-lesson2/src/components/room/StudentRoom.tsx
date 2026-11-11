@@ -15,6 +15,7 @@ type State = {
   started: boolean;
   seconds: number;
   remaining: number;
+  timeUp?: boolean;
   reveal: boolean;
   question: { label: string } | null;
   zones: Zone[];
@@ -295,10 +296,14 @@ export default function StudentRoom() {
                   <span
                     className={cx(
                       "rounded-xl px-3 py-0.5 text-lg font-black tabular-nums",
-                      remaining <= 5 ? "animate-pulse bg-rose-100 text-rose-700" : "bg-turq-50 text-turq-800",
+                      state.timeUp
+                        ? "bg-rose-600 text-white"
+                        : remaining <= 5
+                          ? "animate-pulse bg-rose-100 text-rose-700"
+                          : "bg-turq-50 text-turq-800",
                     )}
                   >
-                    ⏱️ {remaining}
+                    {state.timeUp ? "انتهى الوقت" : `⏱️ ${remaining}`}
                   </span>
                 )}
               </div>
@@ -326,7 +331,7 @@ export default function StudentRoom() {
                     <button
                       key={z.id}
                       type="button"
-                      disabled={busy || (state.seconds > 0 && remaining === 0)}
+                      disabled={busy}
                       onClick={() => answer(z.id)}
                       className="touch-target flex items-center gap-3 rounded-2xl border-2 border-slate-200 bg-white p-4 text-lg font-black text-slate-800 shadow transition-all active:scale-95 hover:border-turq-500 hover:bg-turq-50 disabled:opacity-50"
                     >

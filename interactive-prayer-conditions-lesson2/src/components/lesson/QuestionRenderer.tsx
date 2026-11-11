@@ -53,6 +53,8 @@ export function QuestionRenderer({
           correct={reveal?.isCorrect ? (v.index as number) : undefined}
           disabled={disabled}
           columns={choices.length === 2 ? 2 : 1}
+          shuffleChoices
+          shuffleKey={question.key + question.id}
         />
       );
       break;
@@ -76,6 +78,8 @@ export function QuestionRenderer({
           revealed={revealed}
           correct={reveal?.isCorrect ? (v.indices as number[]) : undefined}
           disabled={disabled}
+          shuffleChoices
+          shuffleKey={question.key + question.id}
         />
       );
       break;

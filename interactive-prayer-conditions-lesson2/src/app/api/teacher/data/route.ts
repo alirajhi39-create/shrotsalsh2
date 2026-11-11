@@ -40,8 +40,9 @@ export async function GET(req: NextRequest) {
           allowAudio: base.settings.allowAudio,
           soundsEnabled: base.settings.soundsEnabled,
           videoUrl: base.settings.videoUrl,
+          allowSkipActivities: base.settings.allowSkipActivities,
         }
-      : { passPercent: 80, maxAttempts: 2, allowAudio: true, soundsEnabled: true, videoUrl: null },
+      : { passPercent: 80, maxAttempts: 2, allowAudio: true, soundsEnabled: true, videoUrl: null, allowSkipActivities: true },
     rooms: roomRows.map((r) => ({ id: r.id, name: r.name, active: r.active })),
     students: base.students.map((s) => ({
       ...s,

@@ -29,6 +29,13 @@
       "when": 1794318549695,
       "tag": "0003_add_live_start_timer",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794426751838,
+      "tag": "0004_add_allow_skip",
+      "breakpoints": true
     }
   ]
 }

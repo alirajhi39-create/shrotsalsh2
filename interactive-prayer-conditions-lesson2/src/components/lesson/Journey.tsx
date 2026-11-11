@@ -457,9 +457,16 @@ export default function Journey({ onUnauthorized }: { onUnauthorized?: () => voi
             ))}
           </div>
           {current < SLIDES.length - 1 ? (
-            <Btn variant={done ? "success" : "secondary"} onClick={goNext} disabled={!done || busy} title={done ? "" : "أكمل أنشطة المحطة أولًا"}>
-              {done ? "التالي ←" : "أكمل النشاط أولًا"}
-            </Btn>
+            <div className="flex items-center gap-2">
+              {!done && state.settings.allowSkipActivities && (
+                <Btn variant="ghost" size="sm" onClick={goNext} title="تجاوز هذا النشاط والمضي قدمًا">
+                  تجاوز النشاط ←
+                </Btn>
+              )}
+              <Btn variant={done ? "success" : "secondary"} onClick={goNext} disabled={!done || busy} title={done ? "" : "أكمل أنشطة المحطة أولًا"}>
+                {done ? "التالي ←" : "أكمل النشاط أولًا"}
+              </Btn>
+            </div>
           ) : (
             <span className="text-sm font-bold text-turq-700">نهاية الرحلة 🎉</span>
           )}

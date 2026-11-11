@@ -226,6 +226,7 @@ const DDL: string[] = [
     "pass_percent" integer DEFAULT 80 NOT NULL,
     "max_attempts" integer DEFAULT 2 NOT NULL,
     "allow_audio" boolean DEFAULT true NOT NULL,
+    "allow_skip_activities" boolean DEFAULT true NOT NULL,
     "sounds_enabled" boolean DEFAULT true NOT NULL,
     "video_url" text,
     "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
