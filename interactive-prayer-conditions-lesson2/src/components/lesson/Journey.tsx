@@ -313,6 +313,17 @@ export default function Journey({ onUnauthorized }: { onUnauthorized?: () => voi
 
   const progressPct = Math.round((completed.size / SLIDES.length) * 100);
 
+  // الأنشطة الإلزامية غير المحلولة في المحطة الحالية (الاختيارية يمكن تخطّيها)
+  const pendingRequired = state
+    ? Object.entries(ACTIVITIES)
+        .filter(([k, a]) => a.slideKey === currentKey && !state.answers[k] && (state.requiredActivities?.includes(k) ?? a.required))
+        .map(([k, a]) => ({ key: k, title: a.title }))
+    : [];
+  const pendingBook = state
+    ? state.questions.filter((q) => q.slideKey === currentKey && q.kind !== undefined && !state.answers[`q_${q.id}`] && (state.requiredActivities?.includes(`q_${q.id}`) ?? true))
+    : [];
+  const hasPending = pendingRequired.length > 0 || (currentKey === "book" && pendingBook.length > 0);
+
   return (
     <div className="pattern-bg min-h-screen pb-32">
       <Confetti show={confetti} />
@@ -435,6 +446,16 @@ export default function Journey({ onUnauthorized }: { onUnauthorized?: () => voi
             </span>
             <span className="rounded-full bg-white px-3 py-1 shadow-sm">{SLIDES[current].strategy}</span>
           </div>
+          {hasPending && (
+            <div className="no-print mb-4 rounded-3xl border-2 border-amber-300 bg-amber-50 p-4">
+              <p className="font-black text-amber-900">⏭️ يمكنك تخطّي ما تبقّى من هذه المحطة والمتابعة</p>
+              <p className="mt-1 text-sm font-bold text-amber-800">
+                الأنشطة الإلزامية المتبقية: {pendingRequired.length > 0 ? pendingRequired.map((p) => p.title).join("، ") : "لا يوجد"}
+                {currentKey === "book" && pendingBook.length > 0 ? ` — أسئلة الكتاب المتبقية: ${pendingBook.length}` : ""}
+              </p>
+              <p className="mt-1 text-xs text-amber-700">الأنشطة الاختيارية لا تمنعك من المتابعة، ونقاطها تُحتسب إن حُلّت.</p>
+            </div>
+          )}
           <div key={currentKey}>{stations[currentKey]}</div>
         </main>
       </div>
@@ -457,16 +478,9 @@ export default function Journey({ onUnauthorized }: { onUnauthorized?: () => voi
             ))}
           </div>
           {current < SLIDES.length - 1 ? (
-            <div className="flex items-center gap-2">
-              {!done && state.settings.allowSkipActivities && (
-                <Btn variant="ghost" size="sm" onClick={goNext} title="تجاوز هذا النشاط والمضي قدمًا">
-                  تجاوز النشاط ←
-                </Btn>
-              )}
-              <Btn variant={done ? "success" : "secondary"} onClick={goNext} disabled={!done || busy} title={done ? "" : "أكمل أنشطة المحطة أولًا"}>
-                {done ? "التالي ←" : "أكمل النشاط أولًا"}
-              </Btn>
-            </div>
+            <Btn variant={done ? "success" : "secondary"} onClick={goNext} disabled={busy} title={done ? "" : "يمكنك تخطّي الأنشطة الاختيارية"}>
+              {done ? "التالي ←" : "تخطّي والمتابعة ←"}
+            </Btn>
           ) : (
             <span className="text-sm font-bold text-turq-700">نهاية الرحلة 🎉</span>
           )}

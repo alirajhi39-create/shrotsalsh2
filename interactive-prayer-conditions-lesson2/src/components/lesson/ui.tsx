@@ -242,6 +242,25 @@ export function Confetti({ show }: { show: boolean }) {
 /*  الاختيار من متعدد                                                   */
 /* ------------------------------------------------------------------ */
 
+/**
+ * خلط ثابت يعتمد على مفتاح: نفس المفتاح يعطي نفس الترتيب دائمًا،
+ * فيتغير توزيع الخيارات بين الأسئلة دون أن يتغير أثناء حل الطالب.
+ */
+export function shuffleWithSeed<T>(arr: readonly T[], seed: string): T[] {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    h = (Math.imul(h, 48271) + 11) >>> 0;
+    const j = h % (i + 1);
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
 export function Choices({
   choices,
   value,
@@ -250,8 +269,7 @@ export function Choices({
   revealed,
   disabled,
   columns = 1,
-  shuffleChoices = false,
-  shuffleKey = "",
+  shuffleKey,
 }: {
   choices: readonly string[];
   value: number | null | undefined;
@@ -260,38 +278,35 @@ export function Choices({
   revealed?: boolean;
   disabled?: boolean;
   columns?: 1 | 2 | 3;
-  /** خلط ترتيب الخيارات */
-  shuffleChoices?: boolean;
-  /** مفتاح ثابت للخلط حتى لا يتغير الترتيب مع كل رسم */
   shuffleKey?: string;
 }) {
   const letters = ["أ", "ب", "ج", "د", "هـ"];
-  // خلط الخيارات مع الحفاظ على مطابقة الأرقام الأصلية
-  const order = useMemo(() => {
-    const idx = choices.map((_, i) => i);
-    if (!shuffleChoices) return idx;
-    let seed = 0;
-    for (let i = 0; i < shuffleKey.length; i++) seed = (seed * 31 + shuffleKey.charCodeAt(i)) >>> 0;
-    const arr = [...idx];
-    for (let i = arr.length - 1; i > 0; i--) {
-      seed = (seed * 1103515245 + 12345) >>> 0;
-      const jj = seed % (i + 1);
-      [arr[i], arr[jj]] = [arr[jj], arr[i]];
-    }
-    return arr;
-  }, [choices, shuffleChoices, shuffleKey]);
+  // خلط الخيارات حسب مفتاح السؤال (إن وُجد) — والحفاظ على تطابق الفهرس مع الإجابة
+  const effective = useMemo(() => {
+    if (!shuffleKey) return { list: choices as unknown as string[], map: null as null | number[] };
+    const idx = shuffleWithSeed(choices.map((_, i) => i), shuffleKey);
+    return { list: idx.map((i) => choices[i]), map: idx };
+  }, [choices, shuffleKey]);
+  const shown = effective.list;
+  // تحويل اختيار الطالب من الفهرس المعروض إلى الفهرس الأصلي
+  const pick = (displayIndex: number) => {
+    const original = effective.map ? effective.map[displayIndex] : displayIndex;
+    onChange(original);
+  };
+  const selectedShown = effective.map ? effective.map.indexOf(value ?? -1) : (value ?? -1);
+  const correctShown = effective.map && correct !== undefined ? effective.map.indexOf(correct) : correct;
   return (
     <div className={cx("grid gap-3", columns === 2 && "sm:grid-cols-2", columns === 3 && "sm:grid-cols-3")}>
-      {order.map((i, pos) => {
-        const selected = value === i;
-        const isCorrect = revealed && correct === i;
-        const isWrong = revealed && selected && correct !== i;
+      {shown.map((c, i) => {
+        const selected = selectedShown === i;
+        const isCorrect = revealed && correctShown === i;
+        const isWrong = revealed && selected && correctShown !== i;
         return (
           <button
             key={i}
             type="button"
             disabled={disabled}
-            onClick={() => onChange(i)}
+            onClick={() => pick(i)}
             className={cx(
               "touch-target flex items-center gap-3 rounded-2xl border-2 p-4 text-start text-lg font-semibold transition-all",
               "focus:outline-none focus-visible:ring-4 focus-visible:ring-turq-300",
@@ -309,9 +324,9 @@ export function Choices({
                 isCorrect ? "bg-emerald-500 text-white" : isWrong ? "bg-rose-500 text-white" : selected ? "bg-turq-500 text-white" : "bg-slate-100 text-slate-600",
               )}
             >
-              {isCorrect ? "✓" : isWrong ? "✗" : letters[pos]}
+              {isCorrect ? "✓" : isWrong ? "✗" : letters[i]}
             </span>
-            <span>{choices[i]}</span>
+            <span>{c}</span>
           </button>
         );
       })}
@@ -372,8 +387,6 @@ export function MultiChoices({
   correct,
   revealed,
   disabled,
-  shuffleChoices = false,
-  shuffleKey = "",
 }: {
   choices: readonly string[];
   value: number[];
@@ -381,25 +394,10 @@ export function MultiChoices({
   correct?: number[];
   revealed?: boolean;
   disabled?: boolean;
-  shuffleChoices?: boolean;
-  shuffleKey?: string;
 }) {
-  const order = useMemo(() => {
-    const idx = choices.map((_, i) => i);
-    if (!shuffleChoices) return idx;
-    let seed = 0;
-    for (let i = 0; i < shuffleKey.length; i++) seed = (seed * 31 + shuffleKey.charCodeAt(i)) >>> 0;
-    const arr = [...idx];
-    for (let i = arr.length - 1; i > 0; i--) {
-      seed = (seed * 1103515245 + 12345) >>> 0;
-      const jj = seed % (i + 1);
-      [arr[i], arr[jj]] = [arr[jj], arr[i]];
-    }
-    return arr;
-  }, [choices, shuffleChoices, shuffleKey]);
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      {order.map((i) => {
+      {choices.map((c, i) => {
         const selected = value.includes(i);
         const isCorrect = revealed && correct?.includes(i);
         const isWrong = revealed && selected && !correct?.includes(i);
@@ -427,7 +425,7 @@ export function MultiChoices({
             >
               {selected || isCorrect ? "✓" : ""}
             </span>
-            {choices[i]}
+            {c}
           </button>
         );
       })}

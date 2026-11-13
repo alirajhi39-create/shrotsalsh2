@@ -319,8 +319,6 @@ export const teacherSettings = pgTable(
     passPercent: integer("pass_percent").notNull().default(80),
     maxAttempts: integer("max_attempts").notNull().default(2),
     allowAudio: boolean("allow_audio").notNull().default(true),
-    /** السماح للطالب بتجاوز الأنشطة الاختيارية والمضي قدمًا */
-    allowSkipActivities: boolean("allow_skip_activities").notNull().default(true),
     soundsEnabled: boolean("sounds_enabled").notNull().default(true),
     videoUrl: text("video_url"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

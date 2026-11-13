@@ -214,7 +214,6 @@ export async function POST(req: NextRequest) {
         maxAttempts,
         allowAudio: b(p, "allowAudio"),
         soundsEnabled: b(p, "soundsEnabled"),
-        allowSkipActivities: b(p, "allowSkipActivities"),
         videoUrl: videoUrl || null,
       };
       await db

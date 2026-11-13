@@ -59,11 +59,11 @@ const schema = z.discriminatedUnion("type", [
 
 async function slideRequirementsMet(studentId: number, lessonId: number, slideKey: string) {
   // الأنشطة الإلزامية فقط (من إعدادات المعلم في جدول activities) هي التي تمنع الانتقال
-  const rows0 = await db
-    .select({ key: activities.key, slideId: activities.slideId })
-    .from(activities);
-  const slideIds = new Set((await db.select({ id: lessonSlides.id }).from(lessonSlides).where(eq(lessonSlides.lessonId, lessonId))).map((r) => r.id));
-  const required = rows0.filter((a) => slideIds.has(a.slideId) && requiredKeys.has(a.key)).map((a) => a.key);
+  const slideRows = await db.select({ id: lessonSlides.id, key: lessonSlides.key }).from(lessonSlides).where(eq(lessonSlides.lessonId, lessonId));
+  const slideId = slideRows.find((sl) => sl.key === slideKey)?.id;
+  const required = slideId
+    ? (await db.select({ key: activities.key }).from(activities).where(and(eq(activities.slideId, slideId), eq(activities.isRequired, true)))).map((a) => a.key)
+    : [];
   const rows = await db
     .select({ activityKey: studentAnswers.activityKey })
     .from(studentAnswers)
@@ -78,6 +78,7 @@ async function slideRequirementsMet(studentId: number, lessonId: number, slideKe
   const have = new Set(rows.map((r) => r.activityKey));
   if (required.some((k) => !have.has(k))) return false;
   if (slideKey === "book") {
+    // أسئلة الكتاب إلزامية فقط إذا عيّنها المعلم إلزامية (تُخزَّن في questions.active = true)
     const qs = await getActiveQuestions(lessonId, "book");
     if (qs.some((q) => !have.has(`q_${q.id}`))) return false;
   }
@@ -108,9 +109,8 @@ export async function POST(req: NextRequest) {
         if (!SLIDES.some((s) => s.key === body.completeSlide)) {
           return NextResponse.json({ error: "محطة غير معروفة" }, { status: 400 });
         }
-        await loadRequiredKeys();
         const ok = await slideRequirementsMet(student.id, lessonId, body.completeSlide);
-        if (!ok) return NextResponse.json({ error: "أكمل أنشطة المحطة أولًا" }, { status: 400 });
+        if (!ok) return NextResponse.json({ error: "أكمل الأنشطة الإلزامية للمحطة أولًا، أو يمكنك تخطّي الأنشطة الاختيارية" }, { status: 400 });
         completed = [...completed, body.completeSlide];
       }
       await db

@@ -84,7 +84,7 @@ export type StudentState = {
   student: { id: number; name: string; classroom: string; classroomId: number; resumeCode: string; locked: boolean };
   lesson: { id: number; title: string };
   slides: { key: string; title: string; subtitle: string; strategy: string; videoUrl: string | null; orderIndex: number }[];
-  settings: { passPercent: number; maxAttempts: number; allowAudio: boolean; soundsEnabled: boolean; videoUrl: string | null; allowSkipActivities: boolean };
+  settings: { passPercent: number; maxAttempts: number; allowAudio: boolean; soundsEnabled: boolean; videoUrl: string | null };
   progress: {
     currentSlide: number;
     completedSlides: string[];
@@ -800,7 +800,6 @@ export async function buildStudentState(student: CurrentStudent): Promise<Studen
       allowAudio: settings.allowAudio,
       soundsEnabled: settings.soundsEnabled,
       videoUrl: settings.videoUrl,
-      allowSkipActivities: settings.allowSkipActivities,
     },
     progress: {
       currentSlide: progress.currentSlide,

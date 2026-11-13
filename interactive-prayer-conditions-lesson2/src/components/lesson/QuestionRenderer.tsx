@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { QuestionView } from "@/lib/student";
-import { Choices, DragZones, MultiChoices, OrderWords, TrueFalse, shuffle, cx } from "./ui";
+import { Choices, DragZones, MultiChoices, OrderWords, TrueFalse, shuffle, shuffleWithSeed, cx } from "./ui";
 
 export type Reveal = {
   isCorrect: boolean | null;
@@ -53,8 +53,7 @@ export function QuestionRenderer({
           correct={reveal?.isCorrect ? (v.index as number) : undefined}
           disabled={disabled}
           columns={choices.length === 2 ? 2 : 1}
-          shuffleChoices
-          shuffleKey={question.key + question.id}
+          shuffleKey={`q-${question.id}`}
         />
       );
       break;
@@ -78,8 +77,6 @@ export function QuestionRenderer({
           revealed={revealed}
           correct={reveal?.isCorrect ? (v.indices as number[]) : undefined}
           disabled={disabled}
-          shuffleChoices
-          shuffleKey={question.key + question.id}
         />
       );
       break;
@@ -98,8 +95,8 @@ export function QuestionRenderer({
       const map = rec(v.map) as Record<string, string>;
       body = (
         <DragZones
-          items={items.map((it) => ({ id: it, label: it }))}
-          zones={zones.map((z) => ({ id: z, label: z }))}
+          items={shuffleWithSeed(items.map((it) => ({ id: it, label: it })), `i-${question.id}`).map((x) => ({ id: x.id, label: x.label }))}
+          zones={shuffleWithSeed(zones.map((z) => ({ id: z, label: z })), `z-${question.id}`).map((x) => ({ id: x.id, label: x.label }))}
           value={map}
           onChange={(m) => onChange({ map: m })}
           disabled={disabled}

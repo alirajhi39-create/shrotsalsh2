@@ -226,7 +226,6 @@ const DDL: string[] = [
     "pass_percent" integer DEFAULT 80 NOT NULL,
     "max_attempts" integer DEFAULT 2 NOT NULL,
     "allow_audio" boolean DEFAULT true NOT NULL,
-    "allow_skip_activities" boolean DEFAULT true NOT NULL,
     "sounds_enabled" boolean DEFAULT true NOT NULL,
     "video_url" text,
     "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -316,6 +315,23 @@ const DDL: string[] = [
   `CREATE UNIQUE INDEX IF NOT EXISTS "teacher_settings_teacher_lesson_uq" ON "teacher_settings" USING btree ("teacher_id","lesson_id")`,
 ];
 
+/**
+ * أعمدة أُضيفت في إصدارات لاحقة؛ تُضاف تلقائيًا إن لم تكن موجودة
+ * في قواعد النشر القديمة كي لا تفشل الصفحات.
+ */
+const GUARANTEED_COLUMNS: Array<[string, string, string]> = [
+  ["live_rooms", "started", "boolean default false not null"],
+  ["live_rooms", "seconds", "integer default 0 not null"],
+  ["live_rooms", "question_started_at", "timestamp with time zone"],
+  ["live_rooms", "closed", "boolean default false not null"],
+  ["live_players", "choice", "varchar(120)"],
+  ["live_players", "answered", "boolean default false not null"],
+  ["live_players", "answered_at", "timestamp with time zone"],
+  ["media_assets", "replaces", "varchar(120)"],
+  ["activities", "is_required", "boolean default true not null"],
+  ["questions", "updated_at", "timestamp with time zone default now() not null"],
+];
+
 /** فهارس أساسية يُضمن وجودها دائمًا حتى لو أُنشئت الجداول بوسيلة أخرى */
 const GUARANTEED_INDEXES = [
   `CREATE UNIQUE INDEX IF NOT EXISTS "student_answers_natural_uq" ON "student_answers" USING btree ("student_id","lesson_id","slide_key","activity_key","attempt_id")`,
@@ -347,6 +363,14 @@ export function ensureSchema(): Promise<void> {
           await db.execute(sql.raw(stmt));
         } catch {
           /* الفهرس موجود مسبقًا أو غير قابل للإنشاء */
+        }
+      }
+      // الأعمدة المضافة في إصدارات لاحقة تُضمن دائمًا
+      for (const [table, column, def] of GUARANTEED_COLUMNS) {
+        try {
+          await db.execute(sql.raw(`alter table "${table}" add column if not exists "${column}" ${def}`));
+        } catch {
+          /* العمود موجود أو الجدول غير موجود */
         }
       }
     })().catch((err) => {
