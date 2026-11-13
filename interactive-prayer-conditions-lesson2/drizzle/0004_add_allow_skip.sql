@@ -1,1 +1,0 @@
-ALTER TABLE "teacher_settings" ADD COLUMN "allow_skip_activities" boolean DEFAULT true NOT NULL;
